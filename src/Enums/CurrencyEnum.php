@@ -1,0 +1,75 @@
+<?php
+
+namespace SmartDato\FedEx\Enums;
+
+enum CurrencyEnum: string
+{
+    case ANG = 'ANG';
+    case ARS = 'ARS';
+    case AWG = 'AWG';
+    case AUD = 'AUD';
+    case BSD = 'BSD';
+    case BHD = 'BHD';
+    case BBD = 'BBD';
+    case BMD = 'BMD';
+    case BRL = 'BRL';
+    case BND = 'BND';
+    case BGN = 'BGN';
+    case CAD = 'CAD';
+    case KYD = 'KYD';
+    case CLP = 'CLP';
+    case CNY = 'CNY';
+    case COP = 'COP';
+    case CRC = 'CRC';
+    case EUR = 'EUR';
+    case CZK = 'CZK';
+    case DKK = 'DKK';
+    case DOP = 'DOP';
+    case XCD = 'XCD';
+    case EGP = 'EGP';
+    case GBP = 'GBP';
+    case GTQ = 'GTQ';
+    case HKD = 'HKD';
+    case HUF = 'HUF';
+    case INR = 'INR';
+    case IDR = 'IDR';
+    case ILS = 'ILS';
+    case JMD = 'JMD';
+    case JPY = 'JPY';
+    case KZT = 'KZT';
+    case KES = 'KES';
+    case KWD = 'KWD';
+    case LYD = 'LYD';
+    case MOP = 'MOP';
+    case MYR = 'MYR';
+    case MUR = 'MUR';
+    case MZN = 'MZN';
+    case MXN = 'MXN';
+    case TWD = 'TWD';
+    case TRY = 'TRY';
+    case NZD = 'NZD';
+    case NOK = 'NOK';
+    case PKR = 'PKR';
+    case PAB = 'PAB';
+    case PHP = 'PHP';
+    case PLN = 'PLN';
+    case RON = 'RON';
+    case RUB = 'RUB';
+    case SAR = 'SAR';
+    case SGD = 'SGD';
+    case SBD = 'SBD';
+    case ZAR = 'ZAR';
+    case KRW = 'KRW';
+    case SEK = 'SEK';
+    case CHF = 'CHF';
+    case THB = 'THB';
+    case TOP = 'TOP';
+    case TTD = 'TTD';
+    case UGX = 'UGX';
+    case AED = 'AED';
+    case USD = 'USD';
+    case UYU = 'UYU';
+    case VEF = 'VEF';
+    case VND = 'VND';
+    case WST = 'WST';
+}
