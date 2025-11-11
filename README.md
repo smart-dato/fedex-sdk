@@ -57,8 +57,6 @@ FEDEX_TOKEN_CACHE_TTL=3500
 
 The package handles OAuth authentication automatically. Tokens are cached to minimize API calls and automatically refreshed when needed.
 
-#### Using Dependency Injection
-
 ```php
 use SmartDato\FedEx\Fedex;
 
@@ -76,26 +74,22 @@ class ShippingController extends Controller
 }
 ```
 
-#### Using the Facade
-
-```php
-use SmartDato\FedEx\Facades\Fedex;
-
-$result = Fedex::createShipment($shipmentPayload);
-```
-
 #### Manual Token Management
 
 If you need to manually manage tokens:
 
 ```php
-use SmartDato\FedEx\Facades\Fedex;
+use SmartDato\FedEx\Fedex;
+
+public function __construct(private Fedex $fedex)
+{
+}
 
 // Force refresh the OAuth token
-$newToken = Fedex::refreshToken();
+$newToken = $this->fedex->refreshToken();
 
 // Get the OAuth client directly
-$oauthClient = Fedex::getOAuthClient();
+$oauthClient = $this->fedex->getOAuthClient();
 
 // Get current access token
 $token = $oauthClient->getAccessToken();
@@ -107,7 +101,7 @@ $oauthClient->clearToken();
 ### Creating a Shipment
 
 ```php
-use SmartDato\FedEx\Facades\Fedex;
+use SmartDato\FedEx\Fedex;
 use SmartDato\FedEx\Payloads\ShipmentPayload;
 use SmartDato\FedEx\Payloads\ShipperPayload;
 use SmartDato\FedEx\Payloads\RecipientPayload;
@@ -163,35 +157,40 @@ $shipment = ShipmentPayload::make()
     ->setPickupType(PickupTypeEnum::DROPOFF_AT_FEDEX_LOCATION)
     ->setPackagingType(PackagingTypeEnum::YOUR_PACKAGING);
 
-$response = Fedex::createShipment($shipment);
+// Inject or resolve the Fedex service
+$fedex = app(Fedex::class);
+$response = $fedex->createShipment($shipment);
 ```
 
 ### Tracking a Shipment
 
 ```php
-use SmartDato\FedEx\Facades\Fedex;
+use SmartDato\FedEx\Fedex;
 use SmartDato\FedEx\Enums\TrackBy;
 
+// Inject or resolve the Fedex service
+$fedex = app(Fedex::class);
+
 // Track by tracking number (default)
-$tracking = Fedex::trackShipment('123456789012');
+$tracking = $fedex->trackShipment('123456789012');
 
 // Track by tracking number with detailed scans
-$tracking = Fedex::trackShipment('123456789012', TrackBy::TRACKING_NUMBER, [
+$tracking = $fedex->trackShipment('123456789012', TrackBy::TRACKING_NUMBER, [
     'includeDetailedScans' => true,
 ]);
 
 // Track by TCN (Tracking Control Number)
-$tracking = Fedex::trackShipment('123456789012', TrackBy::TCN);
+$tracking = $fedex->trackShipment('123456789012', TrackBy::TCN);
 
 // Track by reference number with ship date range
-$tracking = Fedex::trackShipment('REFERENCE123', TrackBy::REFERENCE_NUMBER, [
+$tracking = $fedex->trackShipment('REFERENCE123', TrackBy::REFERENCE_NUMBER, [
     'shipDateBegin' => '2024-01-01',
     'shipDateEnd' => '2024-01-31',
     'includeDetailedScans' => true,
 ]);
 
 // Track multiple shipments at once
-$tracking = Fedex::trackMultipleShipments([
+$tracking = $fedex->trackMultipleShipments([
     '123456789012',
     '123456789013',
     '123456789014',
@@ -213,11 +212,14 @@ You can customize these settings in the config file or via environment variables
 ### Error Handling
 
 ```php
+use SmartDato\FedEx\Fedex;
 use Illuminate\Http\Client\ConnectionException;
 use RuntimeException;
 
+$fedex = app(Fedex::class);
+
 try {
-    $result = Fedex::createShipment($shipmentPayload);
+    $result = $fedex->createShipment($shipmentPayload);
 } catch (ConnectionException $e) {
     // Handle connection errors
     Log::error('FedEx API connection error: ' . $e->getMessage());

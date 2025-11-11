@@ -64,10 +64,7 @@
         "laravel": {
             "providers": [
                 "SmartDato\\FedEx\\FedExServiceProvider"
-            ],
-            "aliases": {
-                "FedexRestPhpSdk": "SmartDato\\FedEx\\Facades\\FedEx"
-            }
+            ]
         }
     },
     "minimum-stability": "dev",
