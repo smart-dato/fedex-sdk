@@ -28,12 +28,12 @@ it('can create a shipment', function () {
         totalWeight: 20.6,
         shipper: new ShipperPayload(
             contact: new ContactPayload(
-                phoneNumber:'9018328595',
+                phoneNumber: '9018328595',
                 personName: 'SENDER NAME',
             ),
             address: new AddressPayload(
                 streetLines: [
-                    'SENDER ADDRESS 1'
+                    'SENDER ADDRESS 1',
                 ],
                 city: 'MEMPHIS',
                 countryCode: CountryEnum::US,
@@ -44,19 +44,19 @@ it('can create a shipment', function () {
         recipients: [
             new RecipientPayload(
                 contact: new ContactPayload(
-                    phoneNumber:'9018328595',
+                    phoneNumber: '9018328595',
                     personName: 'RECIPIENT NAME',
                 ),
                 address: new AddressPayload(
                     streetLines: [
-                        'RECIPIENT ADDRESS 1'
+                        'RECIPIENT ADDRESS 1',
                     ],
                     city: 'MEMPHIS',
                     countryCode: CountryEnum::US,
                     stateOrProvinceCode: 'TN',
                     postalCode: '38116',
                 )
-            )
+            ),
         ],
         shippingChargesPayment: new PaymentPayload(
             paymentType: PaymentTypeEnum::SENDER,
@@ -64,7 +64,7 @@ it('can create a shipment', function () {
                 accountNumber: '12XXXXX89',
                 address: new AddressPayload(
                     streetLines: [
-                        'SENDER  ADDRESS 1'
+                        'SENDER  ADDRESS 1',
                     ],
                     city: 'MEMPHIS',
                     countryCode: CountryEnum::US,
@@ -83,13 +83,19 @@ it('can create a shipment', function () {
                     units: WeightUnitEnum::KG,
                     value: 20,
                 )
-            )
+            ),
         ],
+    );
+
+    $client = new \SmartDato\FedEx\Auth\OAuthClient(
+        baseUrl: 'https://apis-sandbox.fedex.com',
+        clientId: 'YOUR_CLIENT_ID',
+        clientSecret: 'YOUR_CLIENT_SECRET',
     );
 
     $data = (new Fedex(
         baseUrl: 'https://apis-sandbox.fedex.com',
-        authorization: 'Bearer',
+        oauthClient: $client,
         labelResponseOptions: LabelResponseOptionEnum::URL_ONLY,
         accountNumber: 'XXXXX2842',
     ))->createShipment($payload);
