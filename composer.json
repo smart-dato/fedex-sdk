@@ -1,6 +1,6 @@
 {
-    "name": "smart-dato/fedex-rest-php-sdk",
-    "description": "This is my package fedex-rest-php-sdk",
+    "name": "smart-dato/fedex-sdk",
+    "description": "This is my package fedex-sdk",
     "keywords": [
         "smart-dato",
         "laravel",
