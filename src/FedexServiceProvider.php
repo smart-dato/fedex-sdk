@@ -6,7 +6,7 @@ use SmartDato\FedEx\Auth\OAuthClient;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
 
-class FedexServiceProvider extends PackageServiceProvider
+class FedExServiceProvider extends PackageServiceProvider
 {
     public function configurePackage(Package $package): void
     {
