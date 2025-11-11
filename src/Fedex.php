@@ -79,7 +79,7 @@ class Fedex
         string $trackingValue,
         TrackBy $trackBy = TrackBy::TRACKING_NUMBER,
         array $options = []
-    ): JsonResponse {
+    ) {
         try {
             $payload = $trackBy->build($trackingValue, $options);
             $content = json_encode($payload, JSON_THROW_ON_ERROR);
@@ -95,7 +95,7 @@ class Fedex
             ->withBody($content)
             ->post('/track/v1/'.$trackBy->value);
 
-        return $response->json();
+        return $response;
     }
 
     /**
