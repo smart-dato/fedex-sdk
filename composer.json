@@ -63,7 +63,7 @@
     "extra": {
         "laravel": {
             "providers": [
-                "SmartDato\\FedEx\\FedExServiceProvider"
+                "SmartDato\\FedEx\\FedexServiceProvider"
             ]
         }
     },
