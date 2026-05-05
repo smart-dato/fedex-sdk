@@ -3,7 +3,6 @@
 namespace SmartDato\FedEx;
 
 use Illuminate\Http\Client\ConnectionException;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Http;
 use SmartDato\FedEx\Auth\OAuthClient;
 use SmartDato\FedEx\Enums\LabelResponseOptionEnum;
@@ -50,7 +49,7 @@ class Fedex
     /**
      * @throws ConnectionException
      */
-    public function createShipment(ShipmentPayload $payload): JsonResponse
+    public function createShipment(ShipmentPayload $payload): array
     {
         try {
             $content = json_encode($this->buildPayload($payload), JSON_THROW_ON_ERROR);
@@ -109,7 +108,7 @@ class Fedex
      *
      * @throws ConnectionException
      */
-    public function trackMultipleShipments(array $trackingNumbers, array $options = []): JsonResponse
+    public function trackMultipleShipments(array $trackingNumbers, array $options = []): array
     {
         try {
             $trackingInfo = array_map(fn ($number) => [
