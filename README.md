@@ -199,6 +199,101 @@ $tracking = $fedex->trackMultipleShipments([
 ]);
 ```
 
+### Trade Documents (ETD Upload)
+
+The Trade Documents endpoints are exposed on a dedicated sub-client via `Fedex::tradeDocuments()`. Three operations are supported: single document upload, multi-document upload (max 5 per call), and letterhead/signature image upload.
+
+#### Upload a single document (pre or post-shipment)
+
+```php
+use SmartDato\FedEx\Fedex;
+use SmartDato\FedEx\Enums\CountryEnum;
+use SmartDato\FedEx\Enums\EtdContentTypeEnum;
+use SmartDato\FedEx\Enums\EtdWorkflowEnum;
+use SmartDato\FedEx\Enums\ShipDocumentTypeEnum;
+use SmartDato\FedEx\Payloads\EtdMetaPayload;
+use SmartDato\FedEx\Payloads\EtdUploadDocumentPayload;
+
+$payload = new EtdUploadDocumentPayload(
+    workflowName: EtdWorkflowEnum::PRE_SHIPMENT,
+    fileName: 'invoice.pdf',
+    contentType: EtdContentTypeEnum::PDF,
+    meta: new EtdMetaPayload(
+        shipDocumentType: ShipDocumentTypeEnum::COMMERCIAL_INVOICE,
+        originCountryCode: CountryEnum::US,
+        destinationCountryCode: CountryEnum::CA,
+    ),
+);
+
+$response = app(Fedex::class)
+    ->tradeDocuments()
+    ->upload($payload, '/path/to/invoice.pdf');
+```
+
+For post-shipment uploads, also pass `carrierCode`, `trackingNumber`, `shipmentDate`, and the FedEx origin/destination location codes returned by the create-shipment response.
+
+#### Upload multiple documents in one call
+
+```php
+use SmartDato\FedEx\Enums\CarrierCodeEnum;
+use SmartDato\FedEx\Payloads\EtdMultiMetaPayload;
+use SmartDato\FedEx\Payloads\EtdMultiUploadPayload;
+
+$payload = new EtdMultiUploadPayload(
+    workflowName: EtdWorkflowEnum::PRE_SHIPMENT,
+    carrierCode: CarrierCodeEnum::FDXE,
+    originCountryCode: CountryEnum::US,
+    destinationCountryCode: CountryEnum::CA,
+    metaData: [
+        new EtdMultiMetaPayload(
+            fileName: 'invoice.pdf',
+            contentType: EtdContentTypeEnum::PDF,
+            shipDocumentType: ShipDocumentTypeEnum::COMMERCIAL_INVOICE,
+            filePath: '/path/to/invoice.pdf',
+            fileReferenceId: 'CI_1',
+            formCode: 'USMCA',
+        ),
+        new EtdMultiMetaPayload(
+            fileName: 'origin.pdf',
+            contentType: EtdContentTypeEnum::PDF,
+            shipDocumentType: ShipDocumentTypeEnum::USMCA_CERTIFICATION_OF_ORIGIN,
+            filePath: '/path/to/origin.pdf',
+            fileReferenceId: 'CO_1',
+            formCode: 'USMCA',
+        ),
+    ],
+);
+
+$response = app(Fedex::class)
+    ->tradeDocuments()
+    ->uploadMultiple($payload);
+```
+
+A maximum of 5 documents per call is enforced.
+
+#### Upload a custom letterhead or signature image
+
+```php
+use SmartDato\FedEx\Enums\LhsImageContentTypeEnum;
+use SmartDato\FedEx\Enums\LhsImageIndexEnum;
+use SmartDato\FedEx\Enums\LhsImageTypeEnum;
+use SmartDato\FedEx\Payloads\LhsImageUploadPayload;
+
+$payload = new LhsImageUploadPayload(
+    referenceId: '1234',
+    name: 'signature.png',
+    contentType: LhsImageContentTypeEnum::PNG,
+    imageType: LhsImageTypeEnum::SIGNATURE,
+    imageIndex: LhsImageIndexEnum::IMAGE_1,
+);
+
+$response = app(Fedex::class)
+    ->tradeDocuments()
+    ->uploadLetterheadOrSignature($payload, '/path/to/signature.png');
+```
+
+Each upload method also accepts an optional `$customerTransactionId` argument that is passed as the `x-customer-transaction-id` header and echoed back in the response — useful for matching async/multi requests.
+
 ### OAuth Token Caching
 
 The package automatically caches OAuth tokens using Laravel's cache system. By default:

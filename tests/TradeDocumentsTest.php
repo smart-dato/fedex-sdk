@@ -1,0 +1,174 @@
+<?php
+
+use Illuminate\Support\Carbon;
+use SmartDato\FedEx\Auth\OAuthClient;
+use SmartDato\FedEx\Enums\CarrierCodeEnum;
+use SmartDato\FedEx\Enums\CountryEnum;
+use SmartDato\FedEx\Enums\EtdContentTypeEnum;
+use SmartDato\FedEx\Enums\EtdWorkflowEnum;
+use SmartDato\FedEx\Enums\LhsImageContentTypeEnum;
+use SmartDato\FedEx\Enums\LhsImageIndexEnum;
+use SmartDato\FedEx\Enums\LhsImageTypeEnum;
+use SmartDato\FedEx\Enums\ShipDocumentTypeEnum;
+use SmartDato\FedEx\Fedex;
+use SmartDato\FedEx\Payloads\EtdMetaPayload;
+use SmartDato\FedEx\Payloads\EtdMultiMetaPayload;
+use SmartDato\FedEx\Payloads\EtdMultiUploadPayload;
+use SmartDato\FedEx\Payloads\EtdUploadDocumentPayload;
+use SmartDato\FedEx\Payloads\LhsImageUploadPayload;
+use SmartDato\FedEx\TradeDocuments\TradeDocumentsClient;
+
+it('builds an ETD pre-shipment upload payload', function () {
+    $payload = new EtdUploadDocumentPayload(
+        workflowName: EtdWorkflowEnum::PRE_SHIPMENT,
+        fileName: 'invoice.pdf',
+        contentType: EtdContentTypeEnum::PDF,
+        meta: new EtdMetaPayload(
+            shipDocumentType: ShipDocumentTypeEnum::COMMERCIAL_INVOICE,
+            originCountryCode: CountryEnum::US,
+            destinationCountryCode: CountryEnum::CA,
+        ),
+    );
+
+    expect($payload->build())->toEqual([
+        'workflowName' => 'ETDPreshipment',
+        'name' => 'invoice.pdf',
+        'contentType' => 'application/pdf',
+        'meta' => [
+            'shipDocumentType' => 'COMMERCIAL_INVOICE',
+            'originCountryCode' => 'US',
+            'destinationCountryCode' => 'CA',
+        ],
+    ]);
+});
+
+it('builds an ETD post-shipment upload payload with all optional fields', function () {
+    $payload = new EtdUploadDocumentPayload(
+        workflowName: EtdWorkflowEnum::POST_SHIPMENT,
+        fileName: 'invoice.pdf',
+        contentType: EtdContentTypeEnum::PDF,
+        carrierCode: CarrierCodeEnum::FDXE,
+        meta: new EtdMetaPayload(
+            shipDocumentType: ShipDocumentTypeEnum::USMCA_CERTIFICATION_OF_ORIGIN,
+            originCountryCode: CountryEnum::US,
+            destinationCountryCode: CountryEnum::CA,
+            formCode: 'USMCA',
+            trackingNumber: '794791292805',
+            shipmentDate: Carbon::parse('2024-01-06T00:00:00'),
+            originLocationCode: 'GVTKK',
+            destinationLocationCode: 'JNUA',
+        ),
+    );
+
+    expect($payload->build())->toEqual([
+        'workflowName' => 'ETDPostshipment',
+        'name' => 'invoice.pdf',
+        'contentType' => 'application/pdf',
+        'meta' => [
+            'shipDocumentType' => 'USMCA_CERTIFICATION_OF_ORIGIN',
+            'originCountryCode' => 'US',
+            'destinationCountryCode' => 'CA',
+            'formCode' => 'USMCA',
+            'trackingNumber' => '794791292805',
+            'shipmentDate' => '2024-01-06T00:00:00',
+            'originLocationCode' => 'GVTKK',
+            'destinationLocationCode' => 'JNUA',
+        ],
+        'carrierCode' => 'FDXE',
+    ]);
+});
+
+it('builds a multi-upload payload', function () {
+    $payload = new EtdMultiUploadPayload(
+        workflowName: EtdWorkflowEnum::PRE_SHIPMENT,
+        carrierCode: CarrierCodeEnum::FDXE,
+        originCountryCode: CountryEnum::US,
+        destinationCountryCode: CountryEnum::CA,
+        metaData: [
+            new EtdMultiMetaPayload(
+                fileName: 'file1.png',
+                contentType: EtdContentTypeEnum::PNG,
+                shipDocumentType: ShipDocumentTypeEnum::COMMERCIAL_INVOICE,
+                filePath: '/tmp/file1.png',
+                fileReferenceId: 'CI_1',
+                formCode: 'USMCA',
+            ),
+        ],
+    );
+
+    expect($payload->build())->toEqual([
+        'workflowName' => 'ETDPreshipment',
+        'carrierCode' => 'FDXE',
+        'originCountryCode' => 'US',
+        'destinationCountryCode' => 'CA',
+        'metaData' => [
+            [
+                'fileName' => 'file1.png',
+                'contentType' => 'image/png',
+                'shipDocumentType' => 'COMMERCIAL_INVOICE',
+                'fileReferenceId' => 'CI_1',
+                'formCode' => 'USMCA',
+            ],
+        ],
+    ]);
+});
+
+it('rejects more than 5 documents in a multi-upload payload', function () {
+    $meta = fn (string $name) => new EtdMultiMetaPayload(
+        fileName: $name,
+        contentType: EtdContentTypeEnum::PDF,
+        shipDocumentType: ShipDocumentTypeEnum::COMMERCIAL_INVOICE,
+        filePath: "/tmp/{$name}",
+    );
+
+    new EtdMultiUploadPayload(
+        workflowName: EtdWorkflowEnum::PRE_SHIPMENT,
+        carrierCode: CarrierCodeEnum::FDXE,
+        originCountryCode: CountryEnum::US,
+        destinationCountryCode: CountryEnum::CA,
+        metaData: array_map($meta, ['a', 'b', 'c', 'd', 'e', 'f']),
+    );
+})->throws(InvalidArgumentException::class);
+
+it('builds a letterhead/signature upload payload', function () {
+    $payload = new LhsImageUploadPayload(
+        referenceId: '1234',
+        name: 'LH2.PNG',
+        contentType: LhsImageContentTypeEnum::PNG,
+        imageType: LhsImageTypeEnum::SIGNATURE,
+        imageIndex: LhsImageIndexEnum::IMAGE_1,
+    );
+
+    expect($payload->build())->toEqual([
+        'document' => [
+            'referenceId' => '1234',
+            'name' => 'LH2.PNG',
+            'contentType' => 'image/png',
+            'meta' => [
+                'imageType' => 'SIGNATURE',
+                'imageIndex' => 'IMAGE_1',
+            ],
+        ],
+        'rules' => [
+            'workflowName' => 'LetterheadSignature',
+        ],
+    ]);
+});
+
+it('exposes the Trade Documents sub-client from the Fedex service', function () {
+    $fedex = new Fedex(
+        oauthClient: new OAuthClient(
+            baseUrl: 'https://apis-sandbox.fedex.com',
+            clientId: 'id',
+            clientSecret: 'secret',
+        ),
+        config: [
+            'environment' => 'sandbox',
+            'base_url' => ['sandbox' => 'https://apis-sandbox.fedex.com'],
+            'account_number' => 'XXXXX2842',
+        ],
+    );
+
+    expect($fedex->tradeDocuments())->toBeInstanceOf(TradeDocumentsClient::class)
+        ->and($fedex->tradeDocuments())->toBe($fedex->tradeDocuments());
+});

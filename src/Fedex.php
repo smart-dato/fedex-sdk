@@ -9,6 +9,7 @@ use SmartDato\FedEx\Auth\OAuthClient;
 use SmartDato\FedEx\Enums\LabelResponseOptionEnum;
 use SmartDato\FedEx\Enums\TrackBy;
 use SmartDato\FedEx\Payloads\ShipmentPayload;
+use SmartDato\FedEx\TradeDocuments\TradeDocumentsClient;
 
 class Fedex
 {
@@ -19,6 +20,8 @@ class Fedex
     protected LabelResponseOptionEnum $labelResponseOptions;
 
     protected string $contentType = 'application/json';
+
+    protected ?TradeDocumentsClient $tradeDocuments = null;
 
     public function __construct(
         protected OAuthClient $oauthClient,
@@ -134,6 +137,14 @@ class Fedex
             ->post('/track/v1/trackingnumbers');
 
         return $response->json();
+    }
+
+    public function tradeDocuments(): TradeDocumentsClient
+    {
+        return $this->tradeDocuments ??= new TradeDocumentsClient(
+            oauthClient: $this->oauthClient,
+            baseUrl: $this->baseUrl,
+        );
     }
 
     /**
