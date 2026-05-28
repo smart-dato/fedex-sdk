@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Http;
 use SmartDato\FedEx\Auth\OAuthClient;
 use SmartDato\FedEx\Enums\LabelResponseOptionEnum;
 use SmartDato\FedEx\Enums\TrackBy;
+use SmartDato\FedEx\Payloads\CancelShipmentPayload;
 use SmartDato\FedEx\Payloads\ShipmentPayload;
 use SmartDato\FedEx\TradeDocuments\TradeDocumentsClient;
 
@@ -134,6 +135,35 @@ class Fedex
             ])
             ->withBody($content)
             ->post('/track/v1/trackingnumbers');
+
+        return $response->json();
+    }
+
+    /**
+     * Cancel a shipment by tracking number
+     *
+     * @throws ConnectionException
+     */
+    public function cancelShipment(CancelShipmentPayload $payload): array
+    {
+        try {
+            $content = json_encode([
+                'accountNumber' => [
+                    'value' => $this->accountNumber,
+                ],
+                ...$payload->build(),
+            ], JSON_THROW_ON_ERROR);
+        } catch (\JsonException $e) {
+            throw new \RuntimeException('Failed to encode payload to JSON: '.$e->getMessage());
+        }
+
+        $response = Http::baseUrl($this->baseUrl)
+            ->withHeaders([
+                'content-type' => $this->contentType,
+                'authorization' => $this->oauthClient->getAuthorizationHeader(),
+            ])
+            ->withBody($content)
+            ->put('/ship/v1/shipments/cancel');
 
         return $response->json();
     }
