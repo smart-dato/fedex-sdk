@@ -13,7 +13,20 @@ use SmartDato\FedEx\TradeDocuments\TradeDocumentsClient;
 
 class Fedex
 {
+    /**
+     * The FedEx Trade Documents Upload API is served from a dedicated host,
+     * not the main API host used for Ship, Track and OAuth.
+     *
+     * @var array<string, string>
+     */
+    private const DOCUMENT_BASE_URLS = [
+        'sandbox' => 'https://documentapitest.prod.fedex.com/sandbox',
+        'production' => 'https://documentapi.prod.fedex.com',
+    ];
+
     protected string $baseUrl;
+
+    protected string $documentBaseUrl;
 
     protected string $accountNumber;
 
@@ -30,6 +43,9 @@ class Fedex
         $environment = $this->getConfigValue('environment', 'sandbox');
         $baseUrls = $this->getConfigValue('base_url', []);
         $this->baseUrl = $baseUrls[$environment] ?? $baseUrls['sandbox'] ?? 'https://apis-sandbox.fedex.com';
+
+        $documentBaseUrls = array_merge(self::DOCUMENT_BASE_URLS, (array) $this->getConfigValue('document_base_url', []));
+        $this->documentBaseUrl = $documentBaseUrls[$environment] ?? $documentBaseUrls['sandbox'];
 
         $this->accountNumber = $this->getConfigValue('account_number');
         $this->labelResponseOptions = $this->getLabelResponseOptions();
@@ -172,7 +188,7 @@ class Fedex
     {
         return $this->tradeDocuments ??= new TradeDocumentsClient(
             oauthClient: $this->oauthClient,
-            baseUrl: $this->baseUrl,
+            baseUrl: $this->documentBaseUrl,
         );
     }
 
@@ -228,6 +244,14 @@ class Fedex
     public function getBaseUrl(): string
     {
         return $this->baseUrl;
+    }
+
+    /**
+     * Get the base URL of the Trade Documents Upload API
+     */
+    public function getDocumentBaseUrl(): string
+    {
+        return $this->documentBaseUrl;
     }
 
     private function buildPayload(ShipmentPayload $payload): array

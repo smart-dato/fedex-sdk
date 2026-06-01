@@ -27,6 +27,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | FedEx Trade Documents Upload Base URLs
+    |--------------------------------------------------------------------------
+    |
+    | The Trade Documents Upload API (ETD/letterhead uploads) is served from a
+    | dedicated host, separate from the main API host above.
+    |
+    */
+    'document_base_url' => [
+        'sandbox' => 'https://documentapitest.prod.fedex.com/sandbox',
+        'production' => 'https://documentapi.prod.fedex.com',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | FedEx OAuth Credentials
     |--------------------------------------------------------------------------
     |

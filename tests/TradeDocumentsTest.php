@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Http;
 use SmartDato\FedEx\Auth\OAuthClient;
 use SmartDato\FedEx\Enums\CarrierCodeEnum;
 use SmartDato\FedEx\Enums\CountryEnum;
@@ -171,4 +172,65 @@ it('exposes the Trade Documents sub-client from the Fedex service', function () 
 
     expect($fedex->tradeDocuments())->toBeInstanceOf(TradeDocumentsClient::class)
         ->and($fedex->tradeDocuments())->toBe($fedex->tradeDocuments());
+});
+
+it('resolves the dedicated document host separately from the main API host', function (string $environment, string $apiHost, string $documentHost) {
+    $fedex = new Fedex(
+        oauthClient: new OAuthClient(
+            baseUrl: $apiHost,
+            clientId: 'id',
+            clientSecret: 'secret',
+        ),
+        config: [
+            'environment' => $environment,
+            'base_url' => [$environment => $apiHost],
+            'account_number' => 'XXXXX2842',
+        ],
+    );
+
+    expect($fedex->getDocumentBaseUrl())->toBe($documentHost)
+        ->and($fedex->getBaseUrl())->toBe($apiHost);
+})->with([
+    'production' => ['production', 'https://apis.fedex.com', 'https://documentapi.prod.fedex.com'],
+    'sandbox' => ['sandbox', 'https://apis-sandbox.fedex.com', 'https://documentapitest.prod.fedex.com/sandbox'],
+]);
+
+it('sends trade document uploads to the dedicated document host, not the main API host', function () {
+    Http::fake([
+        '*/oauth/token' => Http::response(['access_token' => 'test-token', 'expires_in' => 3600]),
+        'documentapi.prod.fedex.com/*' => Http::response(['output' => ['documentStatuses' => [['documentId' => '123']]]]),
+    ]);
+
+    $fedex = new Fedex(
+        oauthClient: new OAuthClient(
+            baseUrl: 'https://apis.fedex.com',
+            clientId: 'id',
+            clientSecret: 'secret',
+        ),
+        config: [
+            'environment' => 'production',
+            'base_url' => ['production' => 'https://apis.fedex.com'],
+            'account_number' => 'XXXXX2842',
+        ],
+    );
+
+    $file = tempnam(sys_get_temp_dir(), 'etd');
+    file_put_contents($file, '%PDF-1.4 test');
+
+    $payload = new EtdUploadDocumentPayload(
+        workflowName: EtdWorkflowEnum::PRE_SHIPMENT,
+        fileName: 'invoice.pdf',
+        contentType: EtdContentTypeEnum::PDF,
+        meta: new EtdMetaPayload(
+            shipDocumentType: ShipDocumentTypeEnum::COMMERCIAL_INVOICE,
+            originCountryCode: CountryEnum::US,
+            destinationCountryCode: CountryEnum::CA,
+        ),
+    );
+
+    $fedex->tradeDocuments()->upload($payload, $file);
+
+    @unlink($file);
+
+    Http::assertSent(fn ($request) => $request->url() === 'https://documentapi.prod.fedex.com/documents/v1/etds/upload');
 });
