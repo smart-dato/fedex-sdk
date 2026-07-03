@@ -294,6 +294,8 @@ $response = app(Fedex::class)
 
 Each upload method also accepts an optional `$customerTransactionId` argument that is passed as the `x-customer-transaction-id` header and echoed back in the response — useful for matching async/multi requests.
 
+All upload methods return the raw `Illuminate\Http\Client\Response`: decode it with `->json()`, or persist the untouched body via `->body()`/`->status()` for request/response logging in the consuming application.
+
 ### OAuth Token Caching
 
 The package automatically caches OAuth tokens using Laravel's cache system. By default:
