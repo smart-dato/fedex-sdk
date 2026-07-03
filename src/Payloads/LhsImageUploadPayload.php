@@ -17,6 +17,11 @@ class LhsImageUploadPayload implements PayloadContract
         protected LhsImageIndexEnum $imageIndex,
     ) {}
 
+    public function getFileName(): string
+    {
+        return $this->name;
+    }
+
     public function build(): array
     {
         return [

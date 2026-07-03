@@ -17,6 +17,11 @@ class EtdUploadDocumentPayload implements PayloadContract
         protected ?CarrierCodeEnum $carrierCode = null,
     ) {}
 
+    public function getFileName(): string
+    {
+        return $this->fileName;
+    }
+
     public function build(): array
     {
         $payload = [

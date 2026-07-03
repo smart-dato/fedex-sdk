@@ -195,6 +195,53 @@ it('resolves the dedicated document host separately from the main API host', fun
     'sandbox' => ['sandbox', 'https://apis-sandbox.fedex.com', 'https://documentapitest.prod.fedex.com/sandbox'],
 ]);
 
+it('attaches the file under the payload declared name, not the storage basename', function () {
+    Http::fake([
+        '*/oauth/token' => Http::response(['access_token' => 'test-token', 'expires_in' => 3600]),
+        'documentapi.prod.fedex.com/*' => Http::response(['output' => ['meta' => ['docId' => '123']]]),
+    ]);
+
+    $fedex = new Fedex(
+        oauthClient: new OAuthClient(
+            baseUrl: 'https://apis.fedex.com',
+            clientId: 'id',
+            clientSecret: 'secret',
+        ),
+        config: [
+            'environment' => 'production',
+            'base_url' => ['production' => 'https://apis.fedex.com'],
+            'account_number' => 'XXXXX2842',
+        ],
+    );
+
+    $file = tempnam(sys_get_temp_dir(), 'hashedstoragename');
+    file_put_contents($file, '%PDF-1.4 test');
+
+    $payload = new EtdUploadDocumentPayload(
+        workflowName: EtdWorkflowEnum::PRE_SHIPMENT,
+        fileName: 'invoice.pdf',
+        contentType: EtdContentTypeEnum::PDF,
+        meta: new EtdMetaPayload(
+            shipDocumentType: ShipDocumentTypeEnum::COMMERCIAL_INVOICE,
+            originCountryCode: CountryEnum::US,
+            destinationCountryCode: CountryEnum::CA,
+        ),
+    );
+
+    $fedex->tradeDocuments()->upload($payload, $file);
+
+    Http::assertSent(function ($request) use ($file) {
+        if (! str_contains($request->url(), '/documents/v1/etds/upload')) {
+            return false;
+        }
+
+        return str_contains($request->body(), 'filename="invoice.pdf"')
+            && ! str_contains($request->body(), basename($file));
+    });
+
+    @unlink($file);
+});
+
 it('sends trade document uploads to the dedicated document host, not the main API host', function () {
     Http::fake([
         '*/oauth/token' => Http::response(['access_token' => 'test-token', 'expires_in' => 3600]),

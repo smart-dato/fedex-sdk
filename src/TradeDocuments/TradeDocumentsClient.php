@@ -29,7 +29,13 @@ class TradeDocumentsClient
         string $filePath,
         ?string $customerTransactionId = null,
     ): array {
-        return $this->postSingleDocument('/documents/v1/etds/upload', $payload, $filePath, $customerTransactionId);
+        return $this->postSingleDocument(
+            '/documents/v1/etds/upload',
+            $payload,
+            $filePath,
+            $customerTransactionId,
+            $payload->getFileName(),
+        );
     }
 
     /**
@@ -59,10 +65,20 @@ class TradeDocumentsClient
         string $filePath,
         ?string $customerTransactionId = null,
     ): array {
-        return $this->postSingleDocument('/documents/v1/lhsimages/upload', $payload, $filePath, $customerTransactionId);
+        return $this->postSingleDocument(
+            '/documents/v1/lhsimages/upload',
+            $payload,
+            $filePath,
+            $customerTransactionId,
+            $payload->getFileName(),
+        );
     }
 
     /**
+     * FedEx validates that the attached file's name matches the name declared in
+     * the document JSON, so the attachment must not fall back to the storage
+     * basename (often a hashed file name).
+     *
      * @throws ConnectionException
      */
     protected function postSingleDocument(
@@ -70,12 +86,13 @@ class TradeDocumentsClient
         PayloadContract $payload,
         string $filePath,
         ?string $customerTransactionId,
+        ?string $fileName = null,
     ): array {
         return $this->baseRequest($customerTransactionId)
             ->attach('document', $this->encodeJson($payload->build()), 'document.json', [
                 'Content-Type' => 'application/json',
             ])
-            ->attach('attachment', $this->openFile($filePath), basename($filePath))
+            ->attach('attachment', $this->openFile($filePath), $fileName ?? basename($filePath))
             ->post($endpoint)
             ->json();
     }
