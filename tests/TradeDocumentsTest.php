@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
 use SmartDato\FedEx\Auth\OAuthClient;
@@ -240,6 +241,145 @@ it('attaches the file under the payload declared name, not the storage basename'
     });
 
     @unlink($file);
+});
+
+it('passes the raw request and response of a single upload to the recorder', function () {
+    Http::fake([
+        '*/oauth/token' => Http::response(['access_token' => 'test-token', 'expires_in' => 3600]),
+        'example.test/*' => Http::response(['output' => ['meta' => ['docId' => 'doc-1']]], 200),
+    ]);
+
+    $oauth = new OAuthClient(baseUrl: 'https://example.test', clientId: 'id', clientSecret: 'secret');
+    $client = new TradeDocumentsClient($oauth, 'https://example.test');
+
+    $records = [];
+    $client->recordUsing(function ($record) use (&$records) {
+        $records[] = $record;
+    });
+
+    $file = tempnam(sys_get_temp_dir(), 'etd');
+    file_put_contents($file, '%PDF-1.4 test');
+
+    $payload = new EtdUploadDocumentPayload(
+        workflowName: EtdWorkflowEnum::PRE_SHIPMENT,
+        fileName: 'invoice.pdf',
+        contentType: EtdContentTypeEnum::PDF,
+        meta: new EtdMetaPayload(
+            shipDocumentType: ShipDocumentTypeEnum::COMMERCIAL_INVOICE,
+            originCountryCode: CountryEnum::US,
+            destinationCountryCode: CountryEnum::CA,
+        ),
+    );
+
+    $client->upload($payload, $file);
+
+    @unlink($file);
+
+    expect($records)->toHaveCount(1)
+        ->and($records[0]->method)->toBe('POST')
+        ->and($records[0]->url)->toBe('https://example.test/documents/v1/etds/upload')
+        ->and($records[0]->status)->toBe(200)
+        ->and($records[0]->response)->toBe(json_encode(['output' => ['meta' => ['docId' => 'doc-1']]]));
+
+    $request = json_decode($records[0]->request, true);
+
+    expect($request['attachment'])->toBe('invoice.pdf')
+        ->and($request['document']['name'])->toBe('invoice.pdf')
+        ->and($request['document']['workflowName'])->toBe('ETDPreshipment');
+});
+
+it('passes the raw request and response of a multi upload to the recorder', function () {
+    Http::fake([
+        '*/oauth/token' => Http::response(['access_token' => 'test-token', 'expires_in' => 3600]),
+        'example.test/*' => Http::response(['output' => ['documentStatuses' => [['documentId' => 'a'], ['documentId' => 'b']]]], 200),
+    ]);
+
+    $oauth = new OAuthClient(baseUrl: 'https://example.test', clientId: 'id', clientSecret: 'secret');
+    $client = new TradeDocumentsClient($oauth, 'https://example.test');
+
+    $records = [];
+    $client->recordUsing(function ($record) use (&$records) {
+        $records[] = $record;
+    });
+
+    $files = [];
+    foreach (['doc1.pdf', 'doc2.pdf'] as $name) {
+        $file = tempnam(sys_get_temp_dir(), 'etd');
+        file_put_contents($file, '%PDF-1.4 test');
+        $files[$name] = $file;
+    }
+
+    $payload = new EtdMultiUploadPayload(
+        workflowName: EtdWorkflowEnum::PRE_SHIPMENT,
+        carrierCode: CarrierCodeEnum::FDXE,
+        originCountryCode: CountryEnum::US,
+        destinationCountryCode: CountryEnum::CA,
+        metaData: array_map(
+            fn (string $name) => new EtdMultiMetaPayload(
+                fileName: $name,
+                contentType: EtdContentTypeEnum::PDF,
+                shipDocumentType: ShipDocumentTypeEnum::COMMERCIAL_INVOICE,
+                filePath: $files[$name],
+            ),
+            array_keys($files),
+        ),
+    );
+
+    $client->uploadMultiple($payload);
+
+    foreach ($files as $file) {
+        @unlink($file);
+    }
+
+    expect($records)->toHaveCount(1)
+        ->and($records[0]->url)->toBe('https://example.test/documents/v1/etds/multiupload')
+        ->and($records[0]->status)->toBe(200);
+
+    $request = json_decode($records[0]->request, true);
+
+    expect($request['fileAttachments'])->toBe(['doc1.pdf', 'doc2.pdf'])
+        ->and($request['documentInformation']['metaData'])->toHaveCount(2);
+});
+
+it('records a null response when the upload fails to connect', function () {
+    Http::fake([
+        '*/oauth/token' => Http::response(['access_token' => 'test-token', 'expires_in' => 3600]),
+        'example.test/documents/*' => fn () => throw new ConnectionException('timeout'),
+    ]);
+
+    $oauth = new OAuthClient(baseUrl: 'https://example.test', clientId: 'id', clientSecret: 'secret');
+    $client = new TradeDocumentsClient($oauth, 'https://example.test');
+
+    $records = [];
+    $client->recordUsing(function ($record) use (&$records) {
+        $records[] = $record;
+    });
+
+    $file = tempnam(sys_get_temp_dir(), 'etd');
+    file_put_contents($file, '%PDF-1.4 test');
+
+    $payload = new EtdUploadDocumentPayload(
+        workflowName: EtdWorkflowEnum::PRE_SHIPMENT,
+        fileName: 'invoice.pdf',
+        contentType: EtdContentTypeEnum::PDF,
+        meta: new EtdMetaPayload(
+            shipDocumentType: ShipDocumentTypeEnum::COMMERCIAL_INVOICE,
+            originCountryCode: CountryEnum::US,
+            destinationCountryCode: CountryEnum::CA,
+        ),
+    );
+
+    try {
+        expect(fn () => $client->upload($payload, $file))
+            ->toThrow(ConnectionException::class);
+    } finally {
+        @unlink($file);
+    }
+
+    expect($records)->toHaveCount(1)
+        ->and($records[0]->status)->toBeNull()
+        ->and($records[0]->response)->toBeNull()
+        ->and(json_decode($records[0]->request, true)['attachment'])->toBe('invoice.pdf');
 });
 
 it('sends trade document uploads to the dedicated document host, not the main API host', function () {
