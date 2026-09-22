@@ -14,14 +14,9 @@ class PaymentPayload implements PayloadContract
 
     public function build(): array
     {
-        $payload = [
+        return [
             'paymentType' => $this->paymentType->value,
+            'payor' => $this->payor->build(),
         ];
-
-        if (! empty($this->payor)) {
-            $payload['payor'] = $this->payor->build();
-        }
-
-        return $payload;
     }
 }

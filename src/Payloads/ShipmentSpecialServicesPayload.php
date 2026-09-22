@@ -24,13 +24,8 @@ class ShipmentSpecialServicesPayload implements PayloadContract
             );
         }
 
-        if (! empty($this->etdDetail)) {
-            $payload['etdDetail'] = $this->etdDetail->build();
-        }
-
-        if (! empty($this->shipmentDryIceDetail)) {
-            $payload['shipmentDryIceDetail'] = $this->shipmentDryIceDetail->build();
-        }
+        $payload['etdDetail'] = $this->etdDetail->build();
+        $payload['shipmentDryIceDetail'] = $this->shipmentDryIceDetail->build();
 
         return $payload;
     }
