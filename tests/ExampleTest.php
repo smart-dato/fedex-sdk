@@ -1,5 +1,6 @@
 <?php
 
+use SmartDato\FedEx\Auth\OAuthClient;
 use SmartDato\FedEx\Enums\CountryEnum;
 use SmartDato\FedEx\Enums\ImageTypeEnum;
 use SmartDato\FedEx\Enums\LabelResponseOptionEnum;
@@ -87,7 +88,7 @@ it('can create a shipment', function () {
         ],
     );
 
-    $client = new \SmartDato\FedEx\Auth\OAuthClient(
+    $client = new OAuthClient(
         baseUrl: 'https://apis-sandbox.fedex.com',
         clientId: 'YOUR_CLIENT_ID',
         clientSecret: 'YOUR_CLIENT_SECRET',
