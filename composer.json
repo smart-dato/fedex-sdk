@@ -1,6 +1,6 @@
 {
     "name": "smart-dato/fedex-sdk",
-    "description": "This is my package fedex-sdk",
+    "description": "FedEx REST API SDK for Laravel",
     "keywords": [
         "smart-dato",
         "laravel",
