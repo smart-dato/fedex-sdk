@@ -9,8 +9,8 @@ class ShipmentSpecialServicesPayload implements PayloadContract
 {
     public function __construct(
         protected array $specialServiceTypes, /** @var ShipmentSpecialServiceTypeEnum[] $specialServiceTypes */
-        protected EtdDetailPayload $etdDetail,
-        protected ShipmentDryIceDetailPayload $shipmentDryIceDetail,
+        protected ?EtdDetailPayload $etdDetail = null,
+        protected ?ShipmentDryIceDetailPayload $shipmentDryIceDetail = null,
     ) {}
 
     public function build(): array
@@ -24,8 +24,13 @@ class ShipmentSpecialServicesPayload implements PayloadContract
             );
         }
 
-        $payload['etdDetail'] = $this->etdDetail->build();
-        $payload['shipmentDryIceDetail'] = $this->shipmentDryIceDetail->build();
+        if ($this->etdDetail !== null) {
+            $payload['etdDetail'] = $this->etdDetail->build();
+        }
+
+        if ($this->shipmentDryIceDetail !== null) {
+            $payload['shipmentDryIceDetail'] = $this->shipmentDryIceDetail->build();
+        }
 
         return $payload;
     }
