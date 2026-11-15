@@ -12,6 +12,10 @@ class EtdDetailPayload implements PayloadContract
 
     public function build(): array
     {
+        if ($this->attachedDocuments === null) {
+            return [];
+        }
+
         return [
             'attachedDocuments' => array_map(
                 fn (DocumentPayload $attachedDocument) => $attachedDocument->build(),
